@@ -47,10 +47,35 @@ exports.signup = async (req, res) => {
   }
 };
 
+
+exports.getStudentDetails = async (req, res) => {
+  try {
+    const { admissionNumber } = req.params;
+
+    if (!admissionNumber) {
+      return res.status(400).json({ message: "Admission number is required" });
+    }
+
+    const student = await Student.findOne({
+      where: { admissionNumber },
+      attributes: { exclude: ["password"] }, // Exclude password from response
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.status(200).json({ student });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 exports.login = async (req, res) => {
   try {
     const { admissionNumber, password } = req.body;
-    const student = await Student.findOne({ where: { admissionNumber } });
+    const student = await Student.findOne({ admissionNumber });
 
     if (!student) return res.status(404).json({ message: "Student not found" });
 

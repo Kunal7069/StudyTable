@@ -41,3 +41,22 @@ exports.getPosts = async (req, res) => {
     res.status(500).json({ error: "Error fetching posts", details: error.message });
   }
 };
+
+
+exports.deletePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedCount = await Post.destroy({
+      where: { id },
+    });
+
+    if (deletedCount === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    res.status(200).json({ message: "Post deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Error deleting post", details: error.message });
+  }
+};
