@@ -10,6 +10,10 @@ const Post = sequelize.define("Post", {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   date_of_posting: {
     type: DataTypes.DATE,
     allowNull: false,
