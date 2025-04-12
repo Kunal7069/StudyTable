@@ -75,8 +75,8 @@ exports.getStudentDetails = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { admissionNumber, password } = req.body;
-    const student = await Student.findOne({ admissionNumber });
-
+    const student = await Student.findOne({ where: { admissionNumber } });
+    console.log(student)
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     const isMatch = await bcrypt.compare(password, student.password);
