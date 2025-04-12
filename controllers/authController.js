@@ -75,7 +75,7 @@ exports.getStudentDetails = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { admissionNumber, password } = req.body;
-    const student = await Student.findOne({ admissionNumber });
+    const student = await Student.findOne({ where: { admissionNumber } });
 
     if (!student) return res.status(404).json({ message: "Student not found" });
 
