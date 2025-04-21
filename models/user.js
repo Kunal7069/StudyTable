@@ -29,7 +29,7 @@ const Student = sequelize.define("Student", {
     allowNull: false,
   },
   marks: {
-    type: DataTypes.JSON, // Storing marks as a JSON object
+    type: DataTypes.JSON,
     allowNull: false,
     defaultValue: {
       "10th": { maths: "0", science: "0" },
@@ -38,21 +38,53 @@ const Student = sequelize.define("Student", {
     },
   },
   subjects: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Max 6 subjects
+    type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
-    // validate: {
-    //   len: [0, 6],
-    // },
   },
   competitive_exams: {
-    type: DataTypes.ARRAY(DataTypes.STRING), // Max 2 exams
+    type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
-    // validate: {
-    //   len: [0, 2],
-    // },
   },
   about: {
     type: DataTypes.TEXT,
+    allowNull: true,
+  },
+
+  // New fields (nullable)
+  location: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  mobileNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  state: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  pinCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  boardMarksTarget: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  rankTarget: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  targetExams: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: true,
+  },
+  board: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  boardName: {
+    type: DataTypes.STRING,
     allowNull: true,
   },
 });

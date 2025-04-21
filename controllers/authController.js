@@ -14,11 +14,29 @@ const generateRefreshToken = (payload) => jwt.sign(payload, process.env.REFRESH_
 exports.signup = async (req, res) => {
   try {
     const {
-      name, city, email, password, confirm_password, studentClass,
-      marks, subjects, competitive_exams, about
+      name,
+      city,
+      email,
+      password,
+      confirm_password,
+      studentClass,
+      marks,
+      subjects,
+      competitive_exams,
+      about,
+      location,
+      mobileNumber,
+      state,
+      pinCode,
+      boardMarksTarget,
+      rankTarget,
+      targetExams,
+      board,
+      boardName
     } = req.body;
 
-    if (password !== confirm_password) return res.status(400).json({ message: "Passwords do not match" });
+    if (password !== confirm_password)
+      return res.status(400).json({ message: "Passwords do not match" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const admissionNumber = generateAdmissionNumber();
@@ -31,13 +49,28 @@ exports.signup = async (req, res) => {
       password: hashedPassword,
       class: studentClass,
       marks: {
-        "10th": marks["10th"] || { maths: "0", science: "0" },
-        "11th": ["11th", "12th"].includes(studentClass) ? marks["11th"] || { maths: "0", physics: "0", chemistry: "0" } : { maths: "0", physics: "0", chemistry: "0" },
-        "12th": studentClass === "12th" ? marks["12th"] || { maths: "0", physics: "0", chemistry: "0" } : { maths: "0", physics: "0", chemistry: "0" }
+        "10th": marks?.["10th"] || { maths: "0", science: "0" },
+        "11th": ["11th", "12th"].includes(studentClass)
+          ? marks?.["11th"] || { maths: "0", physics: "0", chemistry: "0" }
+          : { maths: "0", physics: "0", chemistry: "0" },
+        "12th": studentClass === "12th"
+          ? marks?.["12th"] || { maths: "0", physics: "0", chemistry: "0" }
+          : { maths: "0", physics: "0", chemistry: "0" }
       },
       subjects,
       competitive_exams,
-      about
+      about,
+
+      // Optional fields (can be null or undefined)
+      location: location || null,
+      mobileNumber: mobileNumber || null,
+      state: state || null,
+      pinCode: pinCode || null,
+      boardMarksTarget: boardMarksTarget || null,
+      rankTarget: rankTarget || null,
+      targetExams: targetExams || null,
+      board: board || null,
+      boardName: boardName || null
     });
 
     await student.save();
@@ -46,6 +79,87 @@ exports.signup = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+exports.updateStudent = async (req, res) => {
+  try {
+    const {
+      admissionNumber,
+      name,
+      city,
+      email,
+      password,
+      confirm_password,
+      studentClass,
+      marks,
+      subjects,
+      competitive_exams,
+      about,
+      location,
+      mobileNumber,
+      state,
+      pinCode,
+      boardMarksTarget,
+      rankTarget,
+      targetExams,
+      board,
+      boardName
+    } = req.body;
+
+    if (!admissionNumber) {
+      return res.status(400).json({ message: "Admission number is required" });
+    }
+
+    const student = await Student.findOne({ where: { admissionNumber } });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    if (password && confirm_password && password !== confirm_password) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    const hashedPassword = password
+      ? await bcrypt.hash(password, 10)
+      : student.password;
+
+    // Update fields
+    await student.update({
+      name,
+      city,
+      email,
+      password: hashedPassword,
+      class: studentClass,
+      marks: {
+        "10th": marks?.["10th"] || { maths: "0", science: "0" },
+        "11th": ["11th", "12th"].includes(studentClass)
+          ? marks?.["11th"] || { maths: "0", physics: "0", chemistry: "0" }
+          : { maths: "0", physics: "0", chemistry: "0" },
+        "12th": studentClass === "12th"
+          ? marks?.["12th"] || { maths: "0", physics: "0", chemistry: "0" }
+          : { maths: "0", physics: "0", chemistry: "0" }
+      },
+      subjects,
+      competitive_exams,
+      about,
+      location,
+      mobileNumber,
+      state,
+      pinCode,
+      boardMarksTarget,
+      rankTarget,
+      targetExams,
+      board,
+      boardName
+    });
+
+    res.status(200).json({ message: "Student information updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 
 exports.getStudentDetails = async (req, res) => {
