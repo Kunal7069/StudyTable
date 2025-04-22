@@ -81,29 +81,47 @@ exports.signup = async (req, res) => {
 };
 
 
+
+exports.updatePassword = async (req, res) => {
+  try {
+    const { admissionNumber, currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!admissionNumber || !currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "New passwords do not match" });
+    }
+
+    const student = await Student.findOne({ where: { admissionNumber } });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, student.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await student.update({ password: hashedNewPassword });
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.updateStudent = async (req, res) => {
   try {
     const {
       admissionNumber,
-      name,
-      city,
-      email,
       password,
       confirm_password,
-      studentClass,
       marks,
-      subjects,
-      competitive_exams,
-      about,
-      location,
-      mobileNumber,
-      state,
-      pinCode,
-      boardMarksTarget,
-      rankTarget,
-      targetExams,
-      board,
-      boardName
+      studentClass, // optional class change
     } = req.body;
 
     if (!admissionNumber) {
@@ -116,50 +134,53 @@ exports.updateStudent = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
+    // Password validation and hashing
     if (password && confirm_password && password !== confirm_password) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 10)
-      : student.password;
+    const updateData = {};
 
-    // Update fields
-    await student.update({
-      name,
-      city,
-      email,
-      password: hashedPassword,
-      class: studentClass,
-      marks: {
-        "10th": marks?.["10th"] || { maths: "0", science: "0" },
-        "11th": ["11th", "12th"].includes(studentClass)
-          ? marks?.["11th"] || { maths: "0", physics: "0", chemistry: "0" }
-          : { maths: "0", physics: "0", chemistry: "0" },
-        "12th": studentClass === "12th"
-          ? marks?.["12th"] || { maths: "0", physics: "0", chemistry: "0" }
-          : { maths: "0", physics: "0", chemistry: "0" }
-      },
-      subjects,
-      competitive_exams,
-      about,
-      location,
-      mobileNumber,
-      state,
-      pinCode,
-      boardMarksTarget,
-      rankTarget,
-      targetExams,
-      board,
-      boardName
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // Handle simple fields
+    const fieldsToUpdate = [
+      "name", "city", "email", "subjects", "competitive_exams", "about",
+      "location", "mobileNumber", "state", "pinCode", "boardMarksTarget",
+      "rankTarget", "targetExams", "board", "boardName"
+    ];
+
+    fieldsToUpdate.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
     });
+
+    // Update class if provided
+    if (studentClass) {
+      updateData.class = studentClass;
+    }
+
+    // Update marks if provided
+    if (marks) {
+      updateData.marks = {
+        ...student.marks, // retain existing marks
+        ...(marks["10th"] ? { "10th": marks["10th"] } : {}),
+        ...(marks["11th"] ? { "11th": marks["11th"] } : {}),
+        ...(marks["12th"] ? { "12th": marks["12th"] } : {})
+      };
+    }
+
+    // Final update
+    await student.update(updateData);
 
     res.status(200).json({ message: "Student information updated successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 
 exports.getStudentDetails = async (req, res) => {
