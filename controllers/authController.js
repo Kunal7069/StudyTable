@@ -1,11 +1,15 @@
 
-
+const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Student = require("../models/user");
 
 // Generate Admission Number
 const generateAdmissionNumber = () => "ADM" + Math.floor(100000 + Math.random() * 900000);
+
+function generateRandomPassword(length = 8) {
+  return crypto.randomBytes(length).toString('base64').slice(0, length);
+}
 
 // Token generation functions
 const generateAccessToken = (payload) => jwt.sign(payload, process.env.ACCESS_SECRET, { expiresIn: "7d" });
@@ -114,6 +118,31 @@ exports.updatePassword = async (req, res) => {
   }
 };
 
+exports.updatePasswordWithoutCurrentPassword = async (req, res) => {
+  try {
+    const { admissionNumber } = req.body;
+
+    if (!admissionNumber ) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    
+    const student = await Student.findOne({ where: { admissionNumber } });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const randomPassword = generateRandomPassword(); 
+    const hashedNewPassword = await bcrypt.hash(randomPassword, 10);
+    await student.update({ password: hashedNewPassword });
+
+    res.status(200).json({ message: "Password updated successfully", new_password: randomPassword });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.updateStudent = async (req, res) => {
   try {
     const {
@@ -211,7 +240,6 @@ exports.login = async (req, res) => {
   try {
     const { admissionNumber, password } = req.body;
     const student = await Student.findOne({ where: { admissionNumber } });
-    console.log(student)
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     const isMatch = await bcrypt.compare(password, student.password);
