@@ -1,4 +1,5 @@
 const { Class, Subject, Unit, Chapter, Topic } = require("../models/educationModels");
+const UserTopicSelection = require("../models/UserTopicSelection");
 const { Op } = require("sequelize");
 
 // Create a new Class
@@ -223,3 +224,137 @@ exports.getFilteredTopics = async (req, res) => {
 
   
 
+exports.getFilteredUserTopics = async (req, res) => {
+  try {
+    const { classNumber, subjectName, boards, jee, neet, Board,admissionNumber  } = req.body;
+
+    // Step 1: Find the Class
+    const classInstance = await Class.findOne({ where: { classNumber } });
+    if (!classInstance) return res.status(404).json({ error: "Class not found" });
+
+    // Step 2: Find the Subject under the Class
+    const subjectInstance = await Subject.findOne({
+      where: {
+        name: subjectName,
+        classId: classInstance.id,
+      },
+    });
+    if (!subjectInstance) return res.status(404).json({ error: "Subject not found" });
+
+    // Step 3: Find all Topics matching the criteria using JOINs
+    const topics = await Topic.findAll({
+      where: {
+        ...(boards && { boards }),
+        ...(jee && { jee }),
+        ...(neet && { neet }),
+        ...(boards === "yes" && Board ? { Board } : {}),
+      },
+      include: [
+        {
+          model: Chapter,
+          required: true,
+          include: [
+            {
+              model: Unit,
+              required: true,
+              include: [
+                {
+                  model: Subject,
+                  required: true,
+                  where: { id: subjectInstance.id },
+                  include: [
+                    {
+                      model: Class,
+                      required: true,
+                      where: { id: classInstance.id },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Step 4: Format response to include full hierarchy
+    const formattedTopics = topics.map((topic) => {
+      const chapter = topic.Chapter;
+      const unit = chapter?.Unit;
+      const subject = unit?.Subject;
+      const classInfo = subject?.Class;
+
+      return {
+        admissionNumber,
+        topicName: topic.name,
+        boards: topic.boards,
+        jee: topic.jee,
+        neet: topic.neet,
+        Board: topic.Board,
+        chapter: chapter?.name,
+        unit: unit?.name,
+        subject: subject?.name,
+        classNumber: classInfo?.classNumber,
+        rating: 0
+      };
+    });
+    await UserTopicSelection.bulkCreate(formattedTopics);
+    res.status(200).json(formattedTopics);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+exports.updateTopicRating = async (req, res) => {
+  try {
+    const {
+      classNumber,
+      subjectName,
+      boards,
+      jee,
+      neet,
+      Board,
+      admissionNumber,
+      topicName,
+      rating,
+    } = req.body;
+
+    // Validate required fields
+    if (
+      !classNumber ||
+      !subjectName ||
+      !admissionNumber ||
+      !topicName ||
+      rating === undefined
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Find and update the topic entry
+    const [updatedCount] = await UserTopicSelection.update(
+      { rating },
+      {
+        where: {
+          admissionNumber,
+          topicName,
+          classNumber,
+          subject: subjectName,
+          ...(boards && { boards }),
+          ...(jee && { jee }),
+          ...(neet && { neet }),
+          ...(boards === "yes" && Board ? { Board } : {}),
+        },
+      }
+    );
+
+    if (updatedCount === 0) {
+      return res.status(404).json({ error: "Topic not found or nothing to update" });
+    }
+
+    res.status(200).json({ message: "Rating updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

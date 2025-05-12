@@ -8,7 +8,9 @@ const {
   uploadSyllabusBatch,
   updateTopicsWithTags,
   updateAllTopicsBoardToCBSE,
-  getFilteredTopics
+  getFilteredTopics,
+  getFilteredUserTopics,
+  updateTopicRating
 } = require("../controllers/educationController");
 
 const router = express.Router();
@@ -22,6 +24,8 @@ router.post("/topic", createTopic);
 router.post("/upload-batch", uploadSyllabusBatch);
 router.post('/update-syllabus', updateTopicsWithTags);
 router.get("/topics", getFilteredTopics);
+router.post("/user-topics", getFilteredUserTopics);
+router.post("/update-topic-rating", updateTopicRating);
 
 
 router.put('/update-topics', updateAllTopicsBoardToCBSE);
