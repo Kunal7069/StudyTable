@@ -11,6 +11,28 @@ const generateAdmissionNumber = () => "ADM" + Math.floor(100000 + Math.random() 
 const generateAccessToken = (payload) => jwt.sign(payload, process.env.ACCESS_SECRET, { expiresIn: "7d" });
 const generateRefreshToken = (payload) => jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: "30d" });
 
+
+
+exports.getIncompleteProfiles = async () => {
+  try {
+    const students = await Student.findAll({
+      attributes: { exclude: ["password"] }
+    });
+
+    const incompleteStudents = students.filter(student => {
+      const studentData = student.toJSON(); // convert Sequelize instance to plain object
+
+      // Check if any top-level value is null (you can be more specific if needed)
+      return Object.values(studentData).some(value => value === null);
+    });
+
+    // Return only admission numbers of incomplete profiles
+    return incompleteStudents.map(student => student.admissionNumber);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
 exports.signup = async (req, res) => {
   try {
     const {

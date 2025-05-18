@@ -310,50 +310,76 @@ exports.getFilteredUserTopics = async (req, res) => {
 exports.updateTopicRating = async (req, res) => {
   try {
     const {
-      classNumber,
-      subjectName,
+      admissionNumber,
+      topicName,
       boards,
       jee,
       neet,
       Board,
-      admissionNumber,
-      topicName,
+      chapter,
+      unit,
+      subject,
+      classNumber,
       rating,
     } = req.body;
 
     // Validate required fields
     if (
-      !classNumber ||
-      !subjectName ||
       !admissionNumber ||
       !topicName ||
+      !subject ||
+      !classNumber ||
       rating === undefined
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Find and update the topic entry
-    const [updatedCount] = await UserTopicSelection.update(
-      { rating },
-      {
-        where: {
-          admissionNumber,
-          topicName,
-          classNumber,
-          subject: subjectName,
-          ...(boards && { boards }),
-          ...(jee && { jee }),
-          ...(neet && { neet }),
-          ...(boards === "yes" && Board ? { Board } : {}),
-        },
-      }
-    );
+    // Construct the search condition (for checking existing entry)
+    const condition = {
+      admissionNumber,
+      topicName,
+      classNumber,
+      subject,
+      ...(boards && { boards }),
+      ...(jee && { jee }),
+      ...(neet && { neet }),
+      ...(boards === "yes" && Board ? { Board } : {}),
+    };
 
-    if (updatedCount === 0) {
-      return res.status(404).json({ error: "Topic not found or nothing to update" });
+    // Check if the entry exists
+    const existingEntry = await UserTopicSelection.findOne({ where: condition });
+
+    if (existingEntry) {
+      // Update rating (or all fields if needed)
+      await existingEntry.update({
+        rating,
+        boards,
+        jee,
+        neet,
+        Board,
+        chapter,
+        unit,
+      });
+
+      return res.status(200).json({ message: "Rating updated successfully" });
+    } else {
+      // Create new entry with all fields
+      await UserTopicSelection.create({
+        admissionNumber,
+        topicName,
+        boards,
+        jee,
+        neet,
+        Board,
+        chapter,
+        unit,
+        subject,
+        classNumber,
+        rating,
+      });
+
+      return res.status(201).json({ message: "Rating created successfully" });
     }
-
-    res.status(200).json({ message: "Rating updated successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
