@@ -83,7 +83,7 @@ app.get("/api/notify/incompleteprofiles", async (req, res) => {
     students.forEach((student, index) => {
       const message = "COMPLETE YOUR PROFILE"
       console.log(student); 
-      // sendToUser(student, { type: "notification", message });
+      sendToUser(student, { type: "notification", message });
     });
     res.status(200).json({ students });
   } catch (error) {
